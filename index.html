@@ -1,0 +1,828 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DAQUAR Dataset Viewer</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --panel: #ffffff;
+      --ink: #19212a;
+      --muted: #657080;
+      --line: #dbe2ea;
+      --blue: #1f5f99;
+      --green: #1f7a5a;
+      --amber: #95620c;
+      --red: #aa3d3d;
+      --shadow: 0 10px 24px rgba(25, 33, 42, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 18px 24px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--line);
+      position: sticky;
+      top: 0;
+      z-index: 5;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 720;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 3px;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    button, select, input {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--ink);
+      border-radius: 7px;
+      min-height: 36px;
+      font-size: 14px;
+    }
+
+    button {
+      padding: 0 12px;
+      cursor: pointer;
+      font-weight: 650;
+    }
+
+    button.active {
+      border-color: var(--blue);
+      color: var(--blue);
+      background: #edf5fc;
+    }
+
+    select { padding: 0 30px 0 10px; }
+    input { padding: 0 11px; min-width: 230px; }
+
+    main {
+      display: grid;
+      grid-template-columns: minmax(240px, 320px) minmax(0, 1fr) minmax(240px, 300px);
+      gap: 16px;
+      padding: 16px;
+      min-height: calc(100vh - 74px);
+    }
+
+    aside, section {
+      min-width: 0;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel-head {
+      padding: 13px 14px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .panel-title {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 750;
+    }
+
+    .count {
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .image-list {
+      height: calc(100vh - 151px);
+      overflow: auto;
+    }
+
+    .image-row {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 60px 1fr;
+      gap: 10px;
+      align-items: center;
+      padding: 10px 12px;
+      border: 0;
+      border-bottom: 1px solid var(--line);
+      border-radius: 0;
+      text-align: left;
+      background: var(--panel);
+    }
+
+    .image-row.active {
+      background: #edf5fc;
+      color: var(--ink);
+      border-color: var(--line);
+    }
+
+    .thumb {
+      width: 60px;
+      height: 46px;
+      object-fit: cover;
+      border-radius: 6px;
+      border: 1px solid var(--line);
+      background: #eef2f5;
+    }
+
+    .row-name {
+      font-weight: 720;
+      font-size: 14px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .row-meta {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 3px;
+    }
+
+    .viewer {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 16px;
+      min-width: 0;
+    }
+
+    .hero {
+      padding: 14px;
+    }
+
+    .hero-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .image-title {
+      font-size: 18px;
+      font-weight: 760;
+    }
+
+    .large-image-wrap {
+      width: 100%;
+      background: #eef2f5;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 280px;
+    }
+
+    .large-image {
+      max-width: 100%;
+      max-height: 58vh;
+      object-fit: contain;
+      display: block;
+    }
+
+    .qa-list {
+      overflow: auto;
+      max-height: calc(100vh - 558px);
+      min-height: 250px;
+    }
+
+    .qa-item {
+      display: grid;
+      grid-template-columns: 42px 1fr;
+      gap: 12px;
+      padding: 14px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .qa-index {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 760;
+      color: var(--blue);
+      background: #edf5fc;
+    }
+
+    .question {
+      font-size: 16px;
+      line-height: 1.42;
+      margin-bottom: 9px;
+    }
+
+    .answer-line {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .answer {
+      font-weight: 760;
+      color: var(--green);
+      background: #eaf7f1;
+      border: 1px solid #cbe9dd;
+      padding: 5px 9px;
+      border-radius: 7px;
+    }
+
+    .raw-answer {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .type {
+      font-size: 12px;
+      color: var(--amber);
+      background: #fff5df;
+      border: 1px solid #f0d99c;
+      padding: 4px 7px;
+      border-radius: 999px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      padding: 14px;
+    }
+
+    .stat {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      background: #fbfcfe;
+    }
+
+    .stat-value {
+      font-size: 22px;
+      font-weight: 800;
+    }
+
+    .stat-label {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 2px;
+    }
+
+    .answer-panel {
+      height: calc(100vh - 151px);
+      overflow: auto;
+    }
+
+    .answer-search {
+      width: calc(100% - 28px);
+      margin: 14px;
+      min-width: 0;
+    }
+
+    .answer-filter {
+      padding: 0 14px 12px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+    }
+
+    .answer-filter input {
+      min-width: 0;
+      width: 100%;
+    }
+
+    .answer-space {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 0 14px 14px;
+    }
+
+    .answer-token {
+      border: 1px solid var(--line);
+      background: #fbfcfe;
+      border-radius: 999px;
+      padding: 5px 8px;
+      font-size: 12px;
+      min-height: auto;
+      cursor: pointer;
+    }
+
+    .answer-token.hit {
+      border-color: var(--green);
+      color: var(--green);
+      background: #eaf7f1;
+    }
+
+    .empty {
+      padding: 18px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    @media (max-width: 1100px) {
+      main {
+        grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+      }
+      .right { grid-column: 1 / -1; }
+      .answer-panel { height: auto; max-height: 360px; }
+    }
+
+    @media (max-width: 760px) {
+      header { align-items: flex-start; flex-direction: column; }
+      .toolbar { justify-content: flex-start; }
+      main { grid-template-columns: 1fr; }
+      .image-list, .qa-list { height: auto; max-height: 440px; }
+      input { min-width: min(100%, 230px); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>DAQUAR Dataset Viewer</h1>
+      <div class="subtitle">Processed DAQUAR image-question-answer browser</div>
+    </div>
+    <div class="toolbar">
+      <button id="splitTrain" class="active" type="button">Train</button>
+      <button id="splitEval" type="button">Eval</button>
+      <button id="splitAll" type="button">All</button>
+      <select id="typeFilter" aria-label="Question type">
+        <option value="all">All auto types</option>
+        <option value="spatial">Auto: Spatial</option>
+        <option value="count">Auto: Counting</option>
+        <option value="color">Auto: Color</option>
+        <option value="list">Auto: List / multiple</option>
+        <option value="location">Auto: Location</option>
+        <option value="attribute">Auto: Attribute</option>
+        <option value="object">Auto: Object</option>
+        <option value="person">Auto: Person</option>
+        <option value="other">Auto: Other</option>
+      </select>
+      <input id="search" type="search" placeholder="Search image, question, answer">
+    </div>
+  </header>
+
+  <main>
+    <aside class="panel">
+      <div class="panel-head">
+        <h2 class="panel-title">Images</h2>
+        <span id="imageCount" class="count"></span>
+      </div>
+      <div id="imageList" class="image-list"></div>
+    </aside>
+
+    <section class="viewer">
+      <div class="panel hero">
+        <div class="hero-top">
+          <div>
+            <div id="imageTitle" class="image-title">Loading</div>
+            <div id="imageMeta" class="subtitle"></div>
+          </div>
+          <button id="randomBtn" type="button">Random</button>
+        </div>
+        <div class="large-image-wrap">
+          <img id="largeImage" class="large-image" alt="">
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2 class="panel-title">Questions</h2>
+          <span id="qaCount" class="count"></span>
+        </div>
+        <div id="qaList" class="qa-list"></div>
+      </div>
+    </section>
+
+    <aside class="right">
+      <div class="panel">
+        <div class="panel-head">
+          <h2 class="panel-title">Stats</h2>
+          <span id="splitLabel" class="count"></span>
+        </div>
+        <div class="stats">
+          <div class="stat"><div id="statQa" class="stat-value">0</div><div class="stat-label">QA pairs</div></div>
+          <div class="stat"><div id="statImg" class="stat-value">0</div><div class="stat-label">Images</div></div>
+          <div class="stat"><div id="statAns" class="stat-value">0</div><div class="stat-label">Answers</div></div>
+          <div class="stat"><div id="statAvg" class="stat-value">0</div><div class="stat-label">Avg QA/image</div></div>
+        </div>
+      </div>
+
+      <div class="panel answer-panel" style="margin-top:16px">
+        <div class="panel-head">
+          <h2 class="panel-title">Answer Space</h2>
+          <span id="answerCount" class="count"></span>
+        </div>
+        <div class="subtitle" style="padding:10px 14px 0">
+          Green = appears as primary answer in current view. Gray = in the 582-class answer space but not currently used.
+        </div>
+        <div class="answer-filter" style="padding-top:12px">
+          <input id="answerFilter" type="search" placeholder="Filter QA by answer, e.g. books">
+          <button id="clearAnswerFilter" type="button">Clear</button>
+        </div>
+        <input id="answerSearch" class="answer-search" type="search" placeholder="Search answer space">
+        <div id="answerSpace" class="answer-space"></div>
+      </div>
+    </aside>
+  </main>
+
+  <script src="daquar_viewer_data.js"></script>
+  <script>
+    const state = {
+      split: "train",
+      rows: { train: [], eval: [], all: [] },
+      answerSpace: [],
+      groups: [],
+      selectedImageId: null,
+      typeFilter: "all",
+      search: "",
+      answerFilter: "",
+      answerSearch: ""
+    };
+
+    const el = {
+      splitTrain: document.getElementById("splitTrain"),
+      splitEval: document.getElementById("splitEval"),
+      splitAll: document.getElementById("splitAll"),
+      typeFilter: document.getElementById("typeFilter"),
+      search: document.getElementById("search"),
+      imageList: document.getElementById("imageList"),
+      imageCount: document.getElementById("imageCount"),
+      imageTitle: document.getElementById("imageTitle"),
+      imageMeta: document.getElementById("imageMeta"),
+      largeImage: document.getElementById("largeImage"),
+      randomBtn: document.getElementById("randomBtn"),
+      qaList: document.getElementById("qaList"),
+      qaCount: document.getElementById("qaCount"),
+      splitLabel: document.getElementById("splitLabel"),
+      statQa: document.getElementById("statQa"),
+      statImg: document.getElementById("statImg"),
+      statAns: document.getElementById("statAns"),
+      statAvg: document.getElementById("statAvg"),
+      answerSearch: document.getElementById("answerSearch"),
+      answerFilter: document.getElementById("answerFilter"),
+      clearAnswerFilter: document.getElementById("clearAnswerFilter"),
+      answerSpace: document.getElementById("answerSpace"),
+      answerCount: document.getElementById("answerCount")
+    };
+
+    function parseCsv(text) {
+      const rows = [];
+      let row = [];
+      let cell = "";
+      let quoted = false;
+      for (let i = 0; i < text.length; i += 1) {
+        const ch = text[i];
+        const next = text[i + 1];
+        if (quoted) {
+          if (ch === '"' && next === '"') {
+            cell += '"';
+            i += 1;
+          } else if (ch === '"') {
+            quoted = false;
+          } else {
+            cell += ch;
+          }
+        } else if (ch === '"') {
+          quoted = true;
+        } else if (ch === ",") {
+          row.push(cell);
+          cell = "";
+        } else if (ch === "\n") {
+          row.push(cell.replace(/\r$/, ""));
+          rows.push(row);
+          row = [];
+          cell = "";
+        } else {
+          cell += ch;
+        }
+      }
+      if (cell.length || row.length) {
+        row.push(cell.replace(/\r$/, ""));
+        rows.push(row);
+      }
+      const header = rows.shift();
+      return rows.filter(r => r.length === header.length).map(r => {
+        const obj = {};
+        header.forEach((h, idx) => obj[h] = r[idx]);
+        obj.primary_answer = normalizeAnswer(obj.answer);
+        obj.qtype = questionType(obj.question);
+        return obj;
+      });
+    }
+
+    function normalizeAnswer(answer) {
+      return String(answer || "").replaceAll(" ", "").split(",")[0].trim();
+    }
+
+    function questionType(question) {
+      let q = String(question || "").toLowerCase().replace(/\s+/g, " ").trim();
+      if (q.startsWith("how many")) return "count";
+      if (/\bcolou?r\b|\bcolors\b|\bcolours\b/.test(q)) return "color";
+      if (/\bwhat all\b|\bname a few\b|\bname one\b|\bwhat are\b|\bwhat do .* hold\b|\bwhat kinds? of\b|\bwhat objects\b|\bwhich objects\b/.test(q)) return "list";
+      if (q.startsWith("where") || /\bkept\b|\bplaced\b|\bhanged\b|\bhung\b|\battached\b|\bstuck\b|\bclosed by\b|\bby what\b|\bby which\b/.test(q)) return "location";
+      if (/\bleft\b|\bright\b|\bbetween\b|\bin front\b|\bbehind\b|\bunder\b|\babove\b|\bon top\b|\bbelow\b|\bnext to\b|\bclose to\b|\bnear\b|\bmiddle\b|\bcentre\b|\bcenter\b|\baround\b|\bsurrounding\b/.test(q)) return "spatial";
+      if (/\bkind of\b|\bwhich .* large\b|\bwhich is the (large|largest|big)\b|\blargest\b|\bbig\b|\bmaterial\b|\bfruit\b|\binstrument\b|\bbottle\b|\bsign\b|\bshadow\b|\brolled object\b|\bdecorative object\b|\bequipment\b|\bbackground\b|\bhow are\b/.test(q)) return "attribute";
+      if (q.startsWith("who")) return "person";
+      if (/\bwhat is\b|\bwhat object\b|\bwhich object\b|\bwhich is\b|\bwhat holds\b|\bwhat covers\b/.test(q)) return "object";
+      return "other";
+    }
+
+    function typeLabel(type) {
+      return {
+        spatial: "Spatial",
+        count: "Counting",
+        color: "Color",
+        list: "List / multiple",
+        location: "Location",
+        attribute: "Attribute",
+        object: "Object",
+        person: "Person",
+        other: "Other"
+      }[type] || type;
+    }
+
+    async function loadText(path) {
+      const response = await fetch(path);
+      if (!response.ok) throw new Error(`Could not load ${path}`);
+      return response.text();
+    }
+
+    async function init() {
+      if (window.DAQUAR_DATA) {
+        state.rows.train = window.DAQUAR_DATA.train.map(prepareRow);
+        state.rows.eval = window.DAQUAR_DATA.eval.map(prepareRow);
+        state.rows.all = [...state.rows.train, ...state.rows.eval];
+        state.answerSpace = window.DAQUAR_DATA.answerSpace;
+        state.selectedImageId = state.rows.train[0]?.image_id || null;
+        attachEvents();
+        render();
+        return;
+      }
+      const [trainCsv, evalCsv, answerText] = await Promise.all([
+        loadText("data_train.csv"),
+        loadText("data_eval.csv"),
+        loadText("answer_space.txt")
+      ]);
+      state.rows.train = parseCsv(trainCsv);
+      state.rows.eval = parseCsv(evalCsv);
+      state.rows.all = [...state.rows.train, ...state.rows.eval];
+      state.answerSpace = answerText.split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+      state.selectedImageId = state.rows.train[0]?.image_id || null;
+      attachEvents();
+      render();
+    }
+
+    function prepareRow(row) {
+      return {
+        ...row,
+        primary_answer: normalizeAnswer(row.answer),
+        qtype: questionType(row.question)
+      };
+    }
+
+    function attachEvents() {
+      el.splitTrain.addEventListener("click", () => setSplit("train"));
+      el.splitEval.addEventListener("click", () => setSplit("eval"));
+      el.splitAll.addEventListener("click", () => setSplit("all"));
+      el.typeFilter.addEventListener("change", e => {
+        state.typeFilter = e.target.value;
+        state.selectedImageId = null;
+        render();
+      });
+      el.search.addEventListener("input", e => {
+        state.search = e.target.value.trim().toLowerCase();
+        state.selectedImageId = null;
+        render();
+      });
+      el.answerSearch.addEventListener("input", e => {
+        state.answerSearch = e.target.value.trim().toLowerCase();
+        renderAnswerSpace(filteredRows());
+      });
+      el.answerFilter.addEventListener("input", e => {
+        state.answerFilter = e.target.value.trim().toLowerCase();
+        state.selectedImageId = null;
+        render();
+      });
+      el.clearAnswerFilter.addEventListener("click", () => {
+        state.answerFilter = "";
+        el.answerFilter.value = "";
+        state.selectedImageId = null;
+        render();
+      });
+      el.randomBtn.addEventListener("click", () => {
+        if (!state.groups.length) return;
+        const idx = Math.floor(Math.random() * state.groups.length);
+        state.selectedImageId = state.groups[idx].image_id;
+        render();
+      });
+    }
+
+    function setSplit(split) {
+      state.split = split;
+      state.selectedImageId = null;
+      render();
+    }
+
+    function currentRows() {
+      return state.rows[state.split] || [];
+    }
+
+    function filteredRows() {
+      const query = state.search;
+      const answerFilter = state.answerFilter;
+      return currentRows().filter(row => {
+        const typeOk = state.typeFilter === "all" || row.qtype === state.typeFilter;
+        if (!typeOk) return false;
+        if (answerFilter && !answerMatches(row, answerFilter)) return false;
+        if (!query) return true;
+        return row.image_id.toLowerCase().includes(query)
+          || row.question.toLowerCase().includes(query)
+          || row.answer.toLowerCase().includes(query)
+          || row.primary_answer.toLowerCase().includes(query);
+      });
+    }
+
+    function answerMatches(row, target) {
+      const normalizedTarget = normalizeAnswer(target).toLowerCase();
+      if (!normalizedTarget) return true;
+      const answers = String(row.answer || "")
+        .split(",")
+        .map(x => normalizeAnswer(x).toLowerCase())
+        .filter(Boolean);
+      return row.primary_answer.toLowerCase() === normalizedTarget || answers.includes(normalizedTarget);
+    }
+
+    function groupRows(rows) {
+      const map = new Map();
+      rows.forEach(row => {
+        if (!map.has(row.image_id)) map.set(row.image_id, []);
+        map.get(row.image_id).push(row);
+      });
+      return [...map.entries()]
+        .map(([image_id, items]) => ({ image_id, items }))
+        .sort((a, b) => imageNumber(a.image_id) - imageNumber(b.image_id));
+    }
+
+    function imageNumber(id) {
+      const match = String(id).match(/\d+/);
+      return match ? Number(match[0]) : 0;
+    }
+
+    function render() {
+      const rows = filteredRows();
+      state.groups = groupRows(rows);
+      if (!state.groups.some(g => g.image_id === state.selectedImageId)) {
+        state.selectedImageId = state.groups[0]?.image_id || null;
+      }
+      renderSplitButtons();
+      renderStats(rows);
+      renderImageList();
+      renderSelected();
+      renderAnswerSpace(rows);
+    }
+
+    function renderSplitButtons() {
+      [["train", el.splitTrain], ["eval", el.splitEval], ["all", el.splitAll]].forEach(([split, node]) => {
+        node.classList.toggle("active", state.split === split);
+      });
+    }
+
+    function renderStats(rows) {
+      const images = new Set(rows.map(r => r.image_id));
+      const answers = new Set(rows.map(r => r.primary_answer));
+      el.splitLabel.textContent = state.split.toUpperCase();
+      el.statQa.textContent = rows.length.toLocaleString();
+      el.statImg.textContent = images.size.toLocaleString();
+      el.statAns.textContent = answers.size.toLocaleString();
+      el.statAvg.textContent = images.size ? (rows.length / images.size).toFixed(1) : "0";
+      el.imageCount.textContent = `${state.groups.length.toLocaleString()} images`;
+    }
+
+    function renderImageList() {
+      if (!state.groups.length) {
+        el.imageList.innerHTML = `<div class="empty">No matching images.</div>`;
+        return;
+      }
+      const html = state.groups.map(group => {
+        const types = [...new Set(group.items.map(x => typeLabel(x.qtype)))].join(", ");
+        return `
+          <button class="image-row ${group.image_id === state.selectedImageId ? "active" : ""}" type="button" data-image-id="${group.image_id}">
+            <img class="thumb" src="images/${group.image_id}.png" alt="">
+            <span>
+              <span class="row-name">${escapeHtml(group.image_id)}</span>
+              <span class="row-meta">${group.items.length} QA · ${escapeHtml(types)}</span>
+            </span>
+          </button>
+        `;
+      }).join("");
+      el.imageList.innerHTML = html;
+      el.imageList.querySelectorAll(".image-row").forEach(btn => {
+        btn.addEventListener("click", () => {
+          state.selectedImageId = btn.dataset.imageId;
+          render();
+        });
+      });
+    }
+
+    function renderSelected() {
+      const group = state.groups.find(g => g.image_id === state.selectedImageId);
+      if (!group) {
+        el.imageTitle.textContent = "No image selected";
+        el.imageMeta.textContent = "";
+        el.largeImage.removeAttribute("src");
+        el.qaCount.textContent = "";
+        el.qaList.innerHTML = `<div class="empty">No questions to show.</div>`;
+        return;
+      }
+      el.imageTitle.textContent = group.image_id;
+      el.imageMeta.textContent = `${group.items.length} question-answer pairs`;
+      el.largeImage.src = `images/${group.image_id}.png`;
+      el.largeImage.alt = group.image_id;
+      el.qaCount.textContent = `${group.items.length} QA`;
+      el.qaList.innerHTML = group.items.map((row, idx) => `
+        <div class="qa-item">
+          <div class="qa-index">${idx + 1}</div>
+          <div>
+            <div class="question">${escapeHtml(row.question)}</div>
+            <div class="answer-line">
+              <span class="answer">primary: ${escapeHtml(row.primary_answer)}</span>
+              <span class="type">auto: ${typeLabel(row.qtype)}</span>
+              ${row.answer !== row.primary_answer ? `<span class="raw-answer">csv answer: ${escapeHtml(row.answer)}</span>` : ""}
+            </div>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function renderAnswerSpace(rows) {
+      const used = new Set(rows.map(r => r.primary_answer));
+      const query = state.answerSearch;
+      const answers = state.answerSpace.filter(ans => !query || ans.toLowerCase().includes(query));
+      el.answerCount.textContent = `${answers.length}/${state.answerSpace.length}`;
+      el.answerSpace.innerHTML = answers.map(ans => `
+        <button class="answer-token ${used.has(ans) ? "hit" : ""}" type="button" data-answer="${escapeHtml(ans)}">${escapeHtml(ans)}</button>
+      `).join("");
+      el.answerSpace.querySelectorAll(".answer-token").forEach(btn => {
+        btn.addEventListener("click", () => {
+          state.answerFilter = btn.dataset.answer.toLowerCase();
+          el.answerFilter.value = btn.dataset.answer;
+          state.selectedImageId = null;
+          render();
+        });
+      });
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    init().catch(err => {
+      document.body.innerHTML = `<main><div class="panel empty">${escapeHtml(err.message)}. Run this page through a local web server in the dataset folder.</div></main>`;
+      console.error(err);
+    });
+  </script>
+</body>
+</html>
